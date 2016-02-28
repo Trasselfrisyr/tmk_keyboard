@@ -90,11 +90,14 @@ uint8_t matrix_scan(void)
         if (--debouncing) {
             _delay_ms(1);
         } else {
+            matrix_row_t key_down = 0;
             for (uint8_t i = 0; i < MATRIX_ROWS; i++) {
+                key_down |= (matrix[i] ^ matrix_debouncing[i]) & matrix_debouncing[i];
                 matrix[i] = matrix_debouncing[i];
             }
             // After debouncing, we can trigger a beep.
-            beep(2080,15);  // <- nya koden!!!!
+            if( key_down != 0 )
+                beep(2000,15);
         }
     }
     return 1;
