@@ -97,7 +97,7 @@ uint8_t matrix_scan(void)
             }
             // After debouncing, we can trigger a beep.
             if( key_down != 0 )
-                beep(2000,15);
+                beep(2080,15);
         }
     }
     return 1;
