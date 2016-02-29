@@ -39,7 +39,7 @@
 #----------------------------------------------------------------------------
 
 # Target file name (without extension).
-TARGET = gh60_lufa
+TARGET = y63b_lufa
 
 # Directory common source filess exist
 TMK_DIR = ../../tmk_core
@@ -51,7 +51,7 @@ TARGET_DIR = .
 SRC =	keymap_common.c \
 	matrix.c \
 	led.c \
-    Tone.c
+    beep.c
 
 ifdef KEYMAP
     SRC := keymap_$(KEYMAP).c $(SRC)
