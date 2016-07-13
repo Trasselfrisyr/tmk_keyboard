@@ -1,4 +1,4 @@
-/* Tone.c
+/* beep.c
 
 	Buzzer for keyboard to simulate some strange Luxor computer.
 
@@ -23,12 +23,11 @@
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 
-// timerx_toggle_count:
+// toggle_count:
 //  > 0 - duration specified
 //  = 0 - stopped
-//  < 0 - infinitely (until stop() method called, or new play() called)
 
-static volatile long timer_toggle_count;
+static volatile uint32_t toggle_count;
 
 static uint8_t isInitialized = 0;
 
@@ -48,12 +47,16 @@ static void initBeep(void)
 	isInitialized = 1;
 }
 
+void set_beep_enabled( uint8_t enable )
+{
+	beepEnabled = enable;
+}
 
 // frequency (in hertz) and duration (in milliseconds).
-void beep(unsigned int frequency, unsigned long duration)
+void beep(uint32_t frequency, uint32_t duration)
 {
 	uint8_t prescalarbits = 0b001;
-	long toggle_count = 0;
+	long toggles = 0;
 	uint32_t ocr = 0;
 
 	if( 0 == beepEnabled )
@@ -66,63 +69,32 @@ void beep(unsigned int frequency, unsigned long duration)
 	ocr = F_CPU / frequency / 2 - 1;
 
 	prescalarbits = 0b001;
-	if (ocr > 0xffff)
-	{
+	if (ocr > 0xffff) {
 		ocr = F_CPU / frequency / 2 / 64 - 1;
 		prescalarbits = 0b011;
 	}
+
 	TCCR3B = (TCCR3B & 0b11111000) | prescalarbits;
 
 	// Calculate the toggle count
-	if (duration > 0)
-	{
-		toggle_count = 2 * frequency * duration / 1000;
-	}
-	else
-	{
-		toggle_count = -1;
-	}
+	toggles = 2 * frequency * duration / 1000;
 
 	// Set the OCR for the given timer,
 	// set the toggle count,
 	// then turn on the interrupts
 	OCR3A = ocr;
-	timer_toggle_count = toggle_count;
+	toggle_count = toggles;
 	TIMSK3 |= (1u<<OCIE3A);
 }
 
-
-// XXX: this function only works properly for timer 2 (the only one we use
-// currently).  for the others, it should end the tone, but won't restore
-// proper PWM functionality for the timer.
-inline
-static void disableTimer(void)
-{
-	TIMSK3 &= ~(1u<<OCIE3A);
-}
-
-
-void noTone(uint8_t _pin)
-{
-	disableTimer();
-	BEEP_PORT &= ~BEEP_PIN_MASK;
-}
-
-
 ISR(TIMER3_COMPA_vect)
 {
-	if (timer_toggle_count != 0)
-	{
+	if (toggle_count != 0) {
 		// toggle the pin
 		BEEP_PORT ^= BEEP_PIN_MASK;
-
-		if (timer_toggle_count > 0)
-			timer_toggle_count--;
-	}
-	else
-	{
-		disableTimer();
+		toggle_count--;
+	} else {
+		TIMSK3 &= ~(1u<<OCIE3A);
 		BEEP_PORT &= ~(BEEP_PIN_MASK);  // keep pin low after stop
 	}
 }
-
